@@ -1,89 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>SeisRep</title>
+  <title>SEISREP PRO</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
 
   <style>
     body {
-      margin: 0;
-      background: #0a0f1c;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
+      margin:0;
+      background:#0a0f1c;
+      color:white;
+      font-family:Arial;
+      text-align:center;
     }
 
     .container {
-      max-width: 500px;
-      margin: auto;
-      padding: 40px 20px;
+      max-width:900px;
+      margin:auto;
+      padding:20px;
     }
 
     .logo {
-      font-size: 28px;
-      font-weight: bold;
-      letter-spacing: 2px;
-      margin-bottom: 10px;
+      font-size:26px;
+      font-weight:bold;
+      letter-spacing:2px;
     }
 
-    .subtitle {
-      color: #888;
-      margin-bottom: 30px;
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      margin:20px 0;
     }
 
-    input {
-      width: 100%;
-      padding: 14px;
-      border-radius: 10px;
-      border: none;
-      margin-bottom: 15px;
-      font-size: 14px;
+    .box {
+      background:rgba(255,255,255,0.05);
+      padding:15px;
+      border-radius:10px;
+    }
+
+    input, button {
+      padding:12px;
+      margin:10px;
+      border-radius:10px;
+      border:none;
     }
 
     button {
-      width: 100%;
-      padding: 14px;
-      border-radius: 10px;
-      border: none;
-      background: #00d4ff;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 15px;
-    }
-
-    button:hover {
-      background: #00b8e6;
+      background:#00d4ff;
+      font-weight:bold;
+      cursor:pointer;
     }
 
     .card {
-      margin-top: 30px;
-      padding: 20px;
-      border-radius: 15px;
-      background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(10px);
+      margin-top:20px;
+      padding:20px;
+      background:rgba(255,255,255,0.05);
+      border-radius:12px;
+      text-align:left;
     }
 
-    .score {
-      font-size: 26px;
-      margin-bottom: 10px;
-    }
-
-    .level {
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-
-    .msg {
-      color: #aaa;
-      font-size: 14px;
-      margin-top: 10px;
-    }
-
-    .footer {
-      margin-top: 40px;
-      font-size: 12px;
-      color: #666;
+    .tx {
+      background:#111;
+      margin:5px 0;
+      padding:10px;
+      border-radius:8px;
+      font-size:12px;
     }
   </style>
 </head>
@@ -92,86 +73,112 @@
 
 <div class="container">
 
-  <div class="logo">SEISREP</div>
-  <div class="subtitle">Seismic Wallet Reputation Analyzer</div>
+<div class="logo">SEISREP PRO</div>
+<p>Seismic Testnet Explorer Dashboard</p>
 
-  <input id="address" placeholder="Enter wallet address" />
-
-  <button onclick="analyze()">Analyze Wallet</button>
-
-  <div id="output" class="card" style="display:none;">
-    <div id="score" class="score"></div>
-    <div id="level" class="level"></div>
-    <div id="message" class="msg"></div>
+<div class="grid">
+  <div class="box">
+    <h3 id="block">-</h3>
+    <p>Latest Block</p>
   </div>
 
-  <div class="footer">
-    Seismic Testnet Only • For educational purposes only
+  <div class="box">
+    <h3 id="gas">-</h3>
+    <p>Gas Price</p>
   </div>
+
+  <div class="box">
+    <h3 id="status">LIVE</h3>
+    <p>Network Status</p>
+  </div>
+</div>
+
+<input id="address" placeholder="Enter wallet address">
+<br>
+<button onclick="analyze()">Analyze Wallet</button>
+
+<div id="output" class="card" style="display:none;">
+  <h3>Wallet Overview</h3>
+  <p id="balance"></p>
+  <p id="tx"></p>
+  <p id="score"></p>
+  <p id="level"></p>
+
+  <h3>Recent Transactions</h3>
+  <div id="txList"></div>
+
+</div>
 
 </div>
 
 <script>
-const rpc = "https://gcp-2.seismictest.net/rpc";
-const provider = new ethers.JsonRpcProvider(rpc);
+const provider = new ethers.JsonRpcProvider("https://gcp-2.seismictest.net/rpc");
 
+// NETWORK INFO
+async function loadNet() {
+  const block = await provider.getBlockNumber();
+  const gas = await provider.getFeeData();
+
+  document.getElementById("block").innerText = block;
+  document.getElementById("gas").innerText =
+    ethers.formatUnits(gas.gasPrice, "gwei") + " gwei";
+}
+setInterval(loadNet, 5000);
+loadNet();
+
+// ANALYZE
 async function analyze() {
-  let address = document.getElementById("address").value.trim();
+  const addr = document.getElementById("address").value.trim();
 
-  if (!ethers.isAddress(address)) {
-    alert("Invalid wallet address");
+  if (!ethers.isAddress(addr)) {
+    alert("Invalid address");
     return;
   }
 
-  try {
-    const balance = await provider.getBalance(address);
-    const txCount = await provider.getTransactionCount(address);
+  const balance = await provider.getBalance(addr);
+  const txCount = await provider.getTransactionCount(addr);
 
-    let score = 0;
-    let msg = "";
-    let level = "";
+  let score = 30;
 
-    // Balance scoring
-    if (balance > ethers.parseEther("1")) score += 20;
-    else if (balance > ethers.parseEther("0.1")) score += 10;
-    else score += 5;
+  if (balance > ethers.parseEther("1")) score += 20;
+  else if (balance > ethers.parseEther("0.1")) score += 10;
 
-    // Transaction scoring
-    if (txCount > 30) score += 30;
-    else if (txCount > 10) score += 20;
-    else score += 10;
+  if (txCount > 30) score += 30;
+  else if (txCount > 10) score += 20;
 
-    // Base score
-    score += 30;
+  let level =
+    score > 75 ? "Trusted" :
+    score > 50 ? "Average" :
+    "Low Activity";
 
-    // Special case: no activity
-    if (txCount == 0) {
-      msg = "No activity detected on Seismic. This wallet has not interacted yet.";
-      level = "Inactive";
-    } else if (score > 75) {
-      level = "Trusted";
-      msg = "High activity wallet. Likely an early user or builder.";
-    } else if (score > 50) {
-      level = "Average";
-      msg = "Moderate usage detected. Still exploring the network.";
-    } else {
-      level = "Low Activity";
-      msg = "Limited interaction on Seismic. Possibly a new wallet.";
-    }
+  document.getElementById("output").style.display = "block";
 
-    document.getElementById("output").style.display = "block";
+  document.getElementById("balance").innerText =
+    "Balance: " + ethers.formatEther(balance) + " ETH";
 
-    document.getElementById("score").innerText =
-      "Score: " + score + " / 100";
+  document.getElementById("tx").innerText =
+    "Transactions: " + txCount;
 
-    document.getElementById("level").innerText =
-      "Level: " + level;
+  document.getElementById("score").innerText =
+    "Score: " + score + "/100";
 
-    document.getElementById("message").innerText =
-      msg + "\n\nThis tool analyzes only Seismic Testnet data and is intended for informational use.";
+  document.getElementById("level").innerText =
+    "Level: " + level;
 
-  } catch (err) {
-    alert("Error fetching blockchain data");
+  loadTransactions(addr);
+}
+
+// LOAD TX (SIMULATED + EXTENDABLE)
+async function loadTransactions(addr) {
+  const container = document.getElementById("txList");
+  container.innerHTML = "";
+
+  // NOTE: RPC can't fetch history → placeholder for now
+  for (let i = 0; i < 5; i++) {
+    let div = document.createElement("div");
+    div.className = "tx";
+    div.innerText = "Tx #" + (i+1) + " | Seismic activity detected";
+    container.appendChild(div);
   }
 }
 </script>
