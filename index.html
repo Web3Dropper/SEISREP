@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>SEISREP PRO</title>
+  <title>SEISREP</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
 
   <style>
@@ -10,19 +10,24 @@
       background:#0a0f1c;
       color:white;
       font-family:Arial;
-      text-align:center;
     }
 
     .container {
       max-width:900px;
       margin:auto;
       padding:20px;
+      text-align:center;
     }
 
     .logo {
-      font-size:26px;
+      font-size:28px;
       font-weight:bold;
       letter-spacing:2px;
+    }
+
+    .subtitle {
+      color:#888;
+      margin-bottom:20px;
     }
 
     .grid {
@@ -38,14 +43,18 @@
       border-radius:10px;
     }
 
-    input, button {
+    input {
+      width:80%;
       padding:12px;
-      margin:10px;
       border-radius:10px;
       border:none;
+      margin:10px;
     }
 
     button {
+      padding:12px 20px;
+      border-radius:10px;
+      border:none;
       background:#00d4ff;
       font-weight:bold;
       cursor:pointer;
@@ -59,12 +68,22 @@
       text-align:left;
     }
 
-    .tx {
-      background:#111;
+    .title {
+      font-size:18px;
+      margin-bottom:10px;
+    }
+
+    .value {
+      font-size:14px;
       margin:5px 0;
-      padding:10px;
-      border-radius:8px;
+      color:#ccc;
+    }
+
+    .footer {
+      margin-top:30px;
       font-size:12px;
+      color:#666;
+      text-align:center;
     }
   </style>
 </head>
@@ -73,8 +92,8 @@
 
 <div class="container">
 
-<div class="logo">SEISREP PRO</div>
-<p>Seismic Testnet Explorer Dashboard</p>
+<div class="logo">SEISREP</div>
+<div class="subtitle">Seismic Contribution Intelligence</div>
 
 <div class="grid">
   <div class="box">
@@ -88,25 +107,33 @@
   </div>
 
   <div class="box">
-    <h3 id="status">LIVE</h3>
+    <h3>Active</h3>
     <p>Network Status</p>
   </div>
 </div>
 
-<input id="address" placeholder="Enter wallet address">
+<input id="address" placeholder="Enter wallet address" />
 <br>
-<button onclick="analyze()">Analyze Wallet</button>
+<button onclick="analyze()">Analyze Contribution</button>
 
 <div id="output" class="card" style="display:none;">
-  <h3>Wallet Overview</h3>
-  <p id="balance"></p>
-  <p id="tx"></p>
-  <p id="score"></p>
-  <p id="level"></p>
 
-  <h3>Recent Transactions</h3>
-  <div id="txList"></div>
+  <div class="title">Wallet Overview</div>
+  <div id="balance" class="value"></div>
+  <div id="tx" class="value"></div>
 
+  <div class="title">Contribution Score</div>
+  <div id="score" class="value"></div>
+  <div id="level" class="value"></div>
+  <div id="rank" class="value"></div>
+
+  <div class="title">Insight</div>
+  <div id="msg" class="value"></div>
+
+</div>
+
+<div class="footer">
+Seismic Testnet Only • Data is indicative and for informational purposes
 </div>
 
 </div>
@@ -123,8 +150,16 @@ async function loadNet() {
   document.getElementById("gas").innerText =
     ethers.formatUnits(gas.gasPrice, "gwei") + " gwei";
 }
-setInterval(loadNet, 5000);
 loadNet();
+setInterval(loadNet, 5000);
+
+// LEVEL SYSTEM
+function getLevel(score) {
+  if (score > 85) return ["Core Contributor", "Top Tier Activity"];
+  if (score > 70) return ["Active Contributor", "High Engagement"];
+  if (score > 50) return ["Participant", "Moderate Activity"];
+  return ["New User", "Low Activity"];
+}
 
 // ANALYZE
 async function analyze() {
@@ -146,10 +181,17 @@ async function analyze() {
   if (txCount > 30) score += 30;
   else if (txCount > 10) score += 20;
 
-  let level =
-    score > 75 ? "Trusted" :
-    score > 50 ? "Average" :
-    "Low Activity";
+  let [levelName, rank] = getLevel(score);
+
+  let msg = "";
+
+  if (score > 75) {
+    msg = "This wallet shows consistent interaction and meaningful network participation.";
+  } else if (score > 50) {
+    msg = "This wallet demonstrates moderate usage with growing engagement.";
+  } else {
+    msg = "This wallet has limited interaction and is in early stages of participation.";
+  }
 
   document.getElementById("output").style.display = "block";
 
@@ -160,26 +202,16 @@ async function analyze() {
     "Transactions: " + txCount;
 
   document.getElementById("score").innerText =
-    "Score: " + score + "/100";
+    "Score: " + score + " / 100";
 
   document.getElementById("level").innerText =
-    "Level: " + level;
+    "Level: " + levelName;
 
-  loadTransactions(addr);
-}
+  document.getElementById("rank").innerText =
+    "Category: " + rank;
 
-// LOAD TX (SIMULATED + EXTENDABLE)
-async function loadTransactions(addr) {
-  const container = document.getElementById("txList");
-  container.innerHTML = "";
-
-  // NOTE: RPC can't fetch history → placeholder for now
-  for (let i = 0; i < 5; i++) {
-    let div = document.createElement("div");
-    div.className = "tx";
-    div.innerText = "Tx #" + (i+1) + " | Seismic activity detected";
-    container.appendChild(div);
-  }
+  document.getElementById("msg").innerText =
+    msg;
 }
 </script>
 
